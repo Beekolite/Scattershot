@@ -1,0 +1,158 @@
+import pygame
+pygame.init()
+
+# Dimensions of grid and each cell
+grid_per_line = 4
+grid_size = 125
+
+# Other variables
+screen_width = 500
+screen_height = 500
+window = pygame.display.set_mode((screen_width, screen_height))
+clock = pygame.time.Clock()
+pygame.display.set_caption("Scattershot Proto 1")
+game_over = False
+loser = None
+
+grey = (127, 127, 127)
+black = (0, 0, 0)
+red = (255, 0, 0)
+blue = (0, 0, 255)
+
+# Create the game board
+grid = [[0 for _ in range(grid_per_line)] for _ in range(grid_per_line)]
+
+# Variable to track the current turn
+current_team = 1  # red = 1, blue = 2
+
+# Check for losing conditions
+def check_loss(team):
+    # Check if 3 are connected horizontally
+    for row in range(grid_per_line):
+        for col in range(grid_per_line - 2):
+            if grid[row][col] == team and grid[row][col + 1] == team and grid[row][col + 2] == team:
+                return True
+
+    # Check if 3 are connected vertically
+    for col in range(grid_per_line):
+        for row in range(grid_per_line - 2):
+            if grid[row][col] == team and grid[row + 1][col] == team and grid[row + 2][col] == team:
+                return True
+
+    # Check if 3 are connected diagonally (top left to bottom-right)
+    for row in range(grid_per_line - 2):
+        for col in range(grid_per_line - 2):
+            if grid[row][col] == team and grid[row + 1][col + 1] == team and grid[row + 2][col + 2] == team:
+                return True
+
+    # Check if 3 are connected diagonally (top right to bottom-left)
+    for row in range(grid_per_line - 2):
+        for col in range(2, grid_per_line):
+            if grid[row][col] == team and grid[row + 1][col - 1] == team and grid[row + 2][col - 2] == team:
+                return True
+
+    return False
+  
+# Check for tie conditions
+def check_tie():
+    for row in range(grid_per_line):
+        for col in range(grid_per_line):
+            if grid[row][col] == 0:
+                return False
+    return True
+
+# Restart game
+def restart_game():
+    global grid, current_team, game_over, loser
+    grid = [[0 for _ in range(grid_per_line)] for _ in range(grid_per_line)]
+    current_team = 1
+    game_over = False
+    loser = None
+
+# Main game loop
+run = True
+while run:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+
+        if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+            if current_team == 1:
+                team_color = red
+            else:
+                team_color = blue
+
+            # Get clicked cell
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            cell_x = mouse_x // grid_size
+            cell_y = mouse_y // grid_size
+
+            # Check if cell is empty
+            if grid[cell_y][cell_x] == 0:
+                grid[cell_y][cell_x] = current_team
+                
+                # Check for loss
+                if check_loss(current_team):
+                    game_over = True
+                    if current_team == 1:
+                        loser = "Red"
+                    else:
+                        loser = "Blue"
+
+                # Check for tie
+                elif check_tie(): 
+                    game_over = True
+                    loser = "Tie"
+
+                # Switch turns
+                if not game_over: 
+                    if current_team == 1:
+                        current_team = 2
+                    else:
+                        current_team = 1
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_SPACE and game_over:
+                restart_game()
+    window.fill(grey)
+
+    # Draw grid
+    for row in range(grid_per_line):
+      for col in range(grid_per_line):
+          cell_x = col * grid_size
+          cell_y = row * grid_size
+
+          # Draw cell and colours
+          pygame.draw.rect(window, black, (cell_x, cell_y, grid_size, grid_size), 1)
+          if grid[row][col] == 1:
+              pygame.draw.circle(window, red, (cell_x + grid_size // 2, cell_y + grid_size // 2), grid_size // 3)
+          elif grid[row][col] == 2:
+              pygame.draw.circle(window, blue, (cell_x + grid_size // 2, cell_y + grid_size // 2), grid_size // 3)
+
+    # Check if game over
+    if game_over:
+        # Display game over message
+        if loser == "Blue":
+          text_color = blue
+        else:
+          text_color = red
+        font = pygame.font.Font(None, 80)
+        text = font.render(str(loser) + " Lost!", True, black)
+        text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2))
+        window.fill(text_color, (0, screen_height // 2 - 40, screen_width, 80))
+        pygame.draw.rect(window, text_color, (50, screen_height // 2 - 30, screen_width - 100, 60))
+        window.blit(text, text_rect)
+      
+        if loser == "Tie":
+            font = pygame.font.Font(None, 80)
+            text = font.render("Tie!", True, black)
+            text_color = grey
+            text_rect = text.get_rect(center=(screen_width // 2, screen_height // 2))
+            window.fill(text_color, (0, screen_height // 2 - 40, screen_width, 80))
+            pygame.draw.rect(window, text_color, (50, screen_height // 2 - 30, screen_width - 100, 60))
+            window.blit(text, text_rect)
+
+    pygame.display.update()
+    clock.tick(30)
+
+pygame.quit()
